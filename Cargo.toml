@@ -1,5 +1,7 @@
 [workspace]
 members = ["wasm-float-transpiler", "util", "backends/*"]
+exclude = ["backends/bs"]
+resolver = "2"
 
 [workspace.package]
 authors = ["Christoph Otter <chipshort@protonmail.com>"]

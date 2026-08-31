@@ -116,7 +116,7 @@ pub extern "C" fn __wasm_soft_float_f_32_convert_ui_64(v: u64) -> u32 {
 }
 #[no_mangle]
 pub extern "C" fn __wasm_soft_float_f_32_demote_f_64(v: u64) -> u32 {
-    let res: StatusAnd<Single> = Double::from_u128(v as u128).value.convert(&mut false);
+    let res: StatusAnd<Single> = Double::from_bits(v as u128).convert(&mut false);
     res.value.to_bits() as u32
 }
 #[no_mangle]
@@ -141,43 +141,46 @@ pub extern "C" fn __wasm_soft_float_f_64_convert_ui_64(v: u64) -> u64 {
 }
 #[no_mangle]
 pub extern "C" fn __wasm_soft_float_f_64_promote_f_32(v: u32) -> u64 {
-    let res: StatusAnd<Double> = Single::from_u128(v as u128).value.convert(&mut false);
+    let res: StatusAnd<Double> = Single::from_bits(v as u128).convert(&mut false);
     res.value.to_bits() as u64
 }
-// I think we can actually just call the non-sat versions here, since `rustc_apfloat` always saturates.
-// The overflow behaviour of the non-saturating versions is just not defined in the wasm spec (which is why these exist).
-// #[no_mangle]
-// pub extern "C" fn __wasm_soft_float_i_32_trunc_s_sat_f_32(v: u32) -> i32 {
-//     todo!()
-// }
-// #[no_mangle]
-// pub extern "C" fn __wasm_soft_float_i_32_trunc_u_sat_f_32(v: u32) -> u32 {
-//     todo!()
-// }
-// #[no_mangle]
-// pub extern "C" fn __wasm_soft_float_i_32_trunc_s_sat_f_64(v: u64) -> i32 {
-//     todo!()
-// }
-// #[no_mangle]
-// pub extern "C" fn __wasm_soft_float_i_32_trunc_u_sat_f_64(v: u64) -> u32 {
-//     todo!()
-// }
-// #[no_mangle]
-// pub extern "C" fn __wasm_soft_float_i_64_trunc_s_sat_f_32(v: u32) -> i64 {
-//     todo!()
-// }
-// #[no_mangle]
-// pub extern "C" fn __wasm_soft_float_i_64_trunc_u_sat_f_32(v: u32) -> u64 {
-//     todo!()
-// }
-// #[no_mangle]
-// pub extern "C" fn __wasm_soft_float_i_64_trunc_s_sat_f_64(v: u64) -> i64 {
-//     todo!()
-// }
-// #[no_mangle]
-// pub extern "C" fn __wasm_soft_float_i_64_trunc_u_sat_f_64(v: u64) -> u64 {
-//     todo!()
-// }
+// rustc_apfloat's integer conversion routines return zero for NaNs and the
+// appropriate bound on overflow, so reuse them for Wasm's saturating forms.
+//
+// The doubled `ssat`/`usat` spelling matches the transpiler's snake_case
+// conversion of walrus's I*TruncSSatF*/I*TruncUSatF* opcode names.
+#[no_mangle]
+pub extern "C" fn __wasm_soft_float_i_32_trunc_ssat_f_32(v: u32) -> i32 {
+    __wasm_soft_float_i_32_trunc_sf_32(v)
+}
+#[no_mangle]
+pub extern "C" fn __wasm_soft_float_i_32_trunc_usat_f_32(v: u32) -> u32 {
+    __wasm_soft_float_i_32_trunc_uf_32(v)
+}
+#[no_mangle]
+pub extern "C" fn __wasm_soft_float_i_32_trunc_ssat_f_64(v: u64) -> i32 {
+    __wasm_soft_float_i_32_trunc_sf_64(v)
+}
+#[no_mangle]
+pub extern "C" fn __wasm_soft_float_i_32_trunc_usat_f_64(v: u64) -> u32 {
+    __wasm_soft_float_i_32_trunc_uf_64(v)
+}
+#[no_mangle]
+pub extern "C" fn __wasm_soft_float_i_64_trunc_ssat_f_32(v: u32) -> i64 {
+    __wasm_soft_float_i_64_trunc_sf_32(v)
+}
+#[no_mangle]
+pub extern "C" fn __wasm_soft_float_i_64_trunc_usat_f_32(v: u32) -> u64 {
+    __wasm_soft_float_i_64_trunc_uf_32(v)
+}
+#[no_mangle]
+pub extern "C" fn __wasm_soft_float_i_64_trunc_ssat_f_64(v: u64) -> i64 {
+    __wasm_soft_float_i_64_trunc_sf_64(v)
+}
+#[no_mangle]
+pub extern "C" fn __wasm_soft_float_i_64_trunc_usat_f_64(v: u64) -> u64 {
+    __wasm_soft_float_i_64_trunc_uf_64(v)
+}
 #[no_mangle]
 pub extern "C" fn __wasm_soft_float_f_32_lt(a: u32, b: u32) -> u32 {
     bool(Single::from_bits(a as u128) < Single::from_bits(b as u128))
