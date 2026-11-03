@@ -200,9 +200,9 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.47"
+version = "1.0.107"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ea3d908b0e36316caf9e9e2c4625cdde190a7e6f440d794667ed17a1855e725"
+checksum = "985e7ec9bb745e6ce6535b544d84d6cd6f7ad8bd711c398938ae983b91a766d9"
 dependencies = [
  "unicode-ident",
 ]
@@ -302,6 +302,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
 
 [[package]]
+name = "softfloat-c"
+version = "3.0.0"
+source = "git+https://github.com/chipshort/softfloat-c.git?rev=16f70b82719a395a0abc0859a6f585f09f0af7a0#16f70b82719a395a0abc0859a6f585f09f0af7a0"
+
+[[package]]
 name = "softfp"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -386,6 +391,15 @@ version = "0.1.0"
 dependencies = [
  "quickcheck",
  "rustc_apfloat",
+ "wasm-soft-float-utils",
+]
+
+[[package]]
+name = "wasm-soft-float-bs"
+version = "0.1.0"
+dependencies = [
+ "quickcheck",
+ "softfloat-c",
  "wasm-soft-float-utils",
 ]
 

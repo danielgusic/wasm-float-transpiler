@@ -130,39 +130,41 @@ pub extern "C" fn __wasm_soft_float_f_64_convert_ui_64(v: u64) -> u64 {
 pub extern "C" fn __wasm_soft_float_f_64_promote_f_32(v: u32) -> u64 {
     unsafe { f32_to_f64(float32_t::from_bits(v)) }.to_bits()
 }
-// TODO: implement those
-// #[no_mangle]
-// pub extern "C" fn __wasm_soft_float_i_32_trunc_s_sat_f_32(v: u32) -> i32 {
-//     unsafe { f32_to_i32(float32_t::from_bits(v), SOFTFLOAT_ROUND_MIN_MAG, true) as i32 }
-// }
-// #[no_mangle]
-// pub extern "C" fn __wasm_soft_float_i_32_trunc_u_sat_f_32(v: u32) -> u32 {
-//     todo!()
-// }
-// #[no_mangle]
-// pub extern "C" fn __wasm_soft_float_i_32_trunc_s_sat_f_64(v: u64) -> i32 {
-//     todo!()
-// }
-// #[no_mangle]
-// pub extern "C" fn __wasm_soft_float_i_32_trunc_u_sat_f_64(v: u64) -> u32 {
-//     todo!()
-// }
-// #[no_mangle]
-// pub extern "C" fn __wasm_soft_float_i_64_trunc_s_sat_f_32(v: u32) -> i64 {
-//     todo!()
-// }
-// #[no_mangle]
-// pub extern "C" fn __wasm_soft_float_i_64_trunc_u_sat_f_32(v: u32) -> u64 {
-//     todo!()
-// }
-// #[no_mangle]
-// pub extern "C" fn __wasm_soft_float_i_64_trunc_s_sat_f_64(v: u64) -> i64 {
-//     todo!()
-// }
-// #[no_mangle]
-// pub extern "C" fn __wasm_soft_float_i_64_trunc_u_sat_f_64(v: u64) -> u64 {
-//     todo!()
-// }
+/// Saturating truncation as in the wasm spec: NaN becomes 0, values at or beyond
+/// `lo` / `hi` clamp to the integer's MIN / MAX, everything else truncates towards zero.
+/// The bounds are exactly representable powers of two, so the comparisons are exact.
+macro_rules! trunc_sat {
+    ($name: ident, $float: ty, $bits: ty, $soft: ident, $int: ty, $trunc: ident, $le: ident, $lo: expr, $hi: expr) => {
+        #[no_mangle]
+        pub extern "C" fn $name(v: $bits) -> $int {
+            let f = $soft::from_bits(v);
+            // NaN: all exponent bits set and a non-zero mantissa, i.e. above infinity
+            if v & !(<$float>::NEG_INFINITY.to_bits() ^ <$float>::INFINITY.to_bits())
+                > <$float>::INFINITY.to_bits()
+            {
+                0
+            } else if unsafe { $le(f, $soft::from_bits(($lo as $float).to_bits())) } {
+                <$int>::MIN
+            } else if unsafe { $le($soft::from_bits(($hi as $float).to_bits()), f) } {
+                <$int>::MAX
+            } else {
+                unsafe { $trunc(f, SOFTFLOAT_ROUND_MIN_MAG, false) as $int }
+            }
+        }
+    };
+}
+const I32_LIMIT: f64 = 2147483648.0; // 2^31
+const U32_LIMIT: f64 = 4294967296.0; // 2^32
+const I64_LIMIT: f64 = 9223372036854775808.0; // 2^63
+const U64_LIMIT: f64 = 18446744073709551616.0; // 2^64
+trunc_sat!(__wasm_soft_float_i_32_trunc_ssat_f_32, f32, u32, float32_t, i32, f32_to_i32, f32_le, -I32_LIMIT, I32_LIMIT);
+trunc_sat!(__wasm_soft_float_i_32_trunc_usat_f_32, f32, u32, float32_t, u32, f32_to_ui32, f32_le, -1.0, U32_LIMIT);
+trunc_sat!(__wasm_soft_float_i_32_trunc_ssat_f_64, f64, u64, float64_t, i32, f64_to_i32, f64_le, -I32_LIMIT, I32_LIMIT);
+trunc_sat!(__wasm_soft_float_i_32_trunc_usat_f_64, f64, u64, float64_t, u32, f64_to_ui32, f64_le, -1.0, U32_LIMIT);
+trunc_sat!(__wasm_soft_float_i_64_trunc_ssat_f_32, f32, u32, float32_t, i64, f32_to_i64, f32_le, -I64_LIMIT, I64_LIMIT);
+trunc_sat!(__wasm_soft_float_i_64_trunc_usat_f_32, f32, u32, float32_t, u64, f32_to_ui64, f32_le, -1.0, U64_LIMIT);
+trunc_sat!(__wasm_soft_float_i_64_trunc_ssat_f_64, f64, u64, float64_t, i64, f64_to_i64, f64_le, -I64_LIMIT, I64_LIMIT);
+trunc_sat!(__wasm_soft_float_i_64_trunc_usat_f_64, f64, u64, float64_t, u64, f64_to_ui64, f64_le, -1.0, U64_LIMIT);
 #[no_mangle]
 pub extern "C" fn __wasm_soft_float_f_32_lt(a: u32, b: u32) -> u32 {
     bool(unsafe { f32_lt(float32_t::from_bits(a), float32_t::from_bits(b)) })
